@@ -1,40 +1,21 @@
 pipeline {
     agent any
 
-    environment {
-        IMAGE_NAME = 'foodie-react-app'
-        CONTAINER_NAME = 'foodie-react-app'
-    }
-
     stages {
-
-        stage('Build Docker Image') {
-            steps {
-                sh '''
-                    docker build \
-                      -t ${IMAGE_NAME}:${BUILD_NUMBER} \
-                      -t ${IMAGE_NAME}:latest \
-                      .
-                '''
-            }
-        }
 
         stage('Stop Old Container') {
             steps {
                 sh '''
-                    docker rm -f ${CONTAINER_NAME} || true
+                    docker compose down || true
+                    docker rm -f foodie-react-app || true
                 '''
             }
         }
 
-        stage('Check Port') {
+        stage('Build') {
             steps {
                 sh '''
-                    if ss -lnt | grep -q ':9060 '; then
-                        echo "Port 9060 is already in use"
-                        docker ps --format "table {{.ID}}\t{{.Names}}\t{{.Ports}}"
-                        exit 1
-                    fi
+                    docker compose build
                 '''
             }
         }
@@ -42,11 +23,7 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh '''
-                    docker run -d \
-                      --name ${CONTAINER_NAME} \
-                      --restart unless-stopped \
-                      -p 9060:80 \
-                      ${IMAGE_NAME}:${BUILD_NUMBER}
+                    docker compose up -d
                 '''
             }
         }
@@ -56,10 +33,12 @@ pipeline {
                 sh '''
                     sleep 3
 
+                    docker ps --filter "name=foodie-react-app"
+
                     curl --fail \
                       --retry 5 \
                       --retry-delay 2 \
-                      http://72.61.114.40:9060/
+                      http://127.0.0.1:9060
                 '''
             }
         }
@@ -75,15 +54,15 @@ pipeline {
 
     post {
         success {
-            echo 'Deployment successful.'
+            echo 'foodie-react-app deployed successfully.'
         }
 
         failure {
-            echo 'Deployment failed.'
+            echo 'foodie-react-app deployment failed.'
 
             sh '''
-                docker logs ${CONTAINER_NAME} || true
-                docker ps -a
+                docker ps -a --filter "name=foodie-react-app"
+                docker logs foodie-react-app || true
             '''
         }
     }

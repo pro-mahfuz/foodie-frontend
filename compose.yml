@@ -1,6 +1,8 @@
 name: foodie-react-app
 services:
   frontend:
+    image: foodie-react-app
+    container_name: foodie-react-app
     build: .
     ports:
       - "9060:80"
