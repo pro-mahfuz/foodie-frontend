@@ -27,13 +27,25 @@ pipeline {
             }
         }
 
+        stage('Check Port') {
+            steps {
+                sh '''
+                    if ss -lnt | grep -q ':9060 '; then
+                        echo "Port 9060 is already in use"
+                        docker ps --format "table {{.ID}}\t{{.Names}}\t{{.Ports}}"
+                        exit 1
+                    fi
+                '''
+            }
+        }
+
         stage('Deploy') {
             steps {
                 sh '''
                     docker run -d \
                       --name ${CONTAINER_NAME} \
                       --restart unless-stopped \
-                      -p 9060:80 \
+                      -p 127.0.0.1:9060:80 \
                       ${IMAGE_NAME}:${BUILD_NUMBER}
                 '''
             }
@@ -43,7 +55,11 @@ pipeline {
             steps {
                 sh '''
                     sleep 3
-                    curl --fail http://127.0.0.1:9060
+
+                    curl --fail \
+                      --retry 5 \
+                      --retry-delay 2 \
+                      http://127.0.0.1:9060
                 '''
             }
         }
@@ -64,6 +80,11 @@ pipeline {
 
         failure {
             echo 'Deployment failed.'
+
+            sh '''
+                docker logs ${CONTAINER_NAME} || true
+                docker ps -a
+            '''
         }
     }
 }
