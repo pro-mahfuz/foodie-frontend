@@ -36,7 +36,7 @@ pipeline {
                         --name ${CONTAINER_NAME} \
                         --restart unless-stopped \
                         --add-host=host.docker.internal:host-gateway \
-                        -p 127.0.0.1:9060:80 \
+                        -p 9060:80 \
                         ${IMAGE_NAME}:${BUILD_NUMBER}
                 '''
             }
