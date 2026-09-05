@@ -1,4 +1,4 @@
-name: foodie-frontend
+name: foodie-react-app
 services:
   frontend:
     build: .
