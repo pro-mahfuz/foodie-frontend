@@ -1,5 +1,4 @@
 pipeline {
-
     agent any
 
     environment {
@@ -9,19 +8,13 @@ pipeline {
 
     stages {
 
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-
         stage('Build Docker Image') {
             steps {
                 sh '''
                     docker build \
-                        -t ${IMAGE_NAME}:${BUILD_NUMBER} \
-                        -t ${IMAGE_NAME}:latest \
-                        .
+                      -t ${IMAGE_NAME}:${BUILD_NUMBER} \
+                      -t ${IMAGE_NAME}:latest \
+                      .
                 '''
             }
         }
@@ -38,10 +31,19 @@ pipeline {
             steps {
                 sh '''
                     docker run -d \
-                        --name ${CONTAINER_NAME} \
-                        --restart unless-stopped \
-                        -p 9060:80 \
-                        ${IMAGE_NAME}:${BUILD_NUMBER}
+                      --name ${CONTAINER_NAME} \
+                      --restart unless-stopped \
+                      -p 9060:80 \
+                      ${IMAGE_NAME}:${BUILD_NUMBER}
+                '''
+            }
+        }
+
+        stage('Verify') {
+            steps {
+                sh '''
+                    sleep 3
+                    curl --fail http://127.0.0.1:9060
                 '''
             }
         }
@@ -57,7 +59,7 @@ pipeline {
 
     post {
         success {
-            echo 'Foodie React application deployed successfully.'
+            echo 'Deployment successful.'
         }
 
         failure {
