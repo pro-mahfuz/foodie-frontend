@@ -1,21 +1,30 @@
 pipeline {
     agent any
 
-    stages {
+    environment {
+        IMAGE_NAME = 'foodie-react-app'
+        CONTAINER_NAME = 'foodie-react-app'
+    }
 
-        stage('Stop Old Container') {
-            steps {
-                sh '''
-                    docker compose down || true
-                    docker rm -f foodie-react-app || true
-                '''
-            }
-        }
+    stages {
 
         stage('Build') {
             steps {
                 sh '''
-                    docker compose build
+                    echo "Building ${IMAGE_NAME}:${BUILD_NUMBER}"
+
+                    docker build \
+                        -t ${IMAGE_NAME}:${BUILD_NUMBER} \
+                        -t ${IMAGE_NAME}:latest \
+                        .
+                '''
+            }
+        }
+
+        stage('Stop Old Container') {
+            steps {
+                sh '''
+                    docker rm -f ${CONTAINER_NAME} || true
                 '''
             }
         }
@@ -23,7 +32,12 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh '''
-                    docker compose up -d
+                    docker run -d \
+                        --name ${CONTAINER_NAME} \
+                        --restart unless-stopped \
+                        --add-host=host.docker.internal:host-gateway \
+                        -p 127.0.0.1:9060:80 \
+                        ${IMAGE_NAME}:${BUILD_NUMBER}
                 '''
             }
         }
@@ -33,12 +47,14 @@ pipeline {
                 sh '''
                     sleep 3
 
-                    docker ps --filter "name=foodie-react-app"
+                    echo "Running container:"
+                    docker ps --filter "name=${CONTAINER_NAME}"
 
+                    echo "Testing application:"
                     curl --fail \
-                      --retry 5 \
-                      --retry-delay 2 \
-                      http://127.0.0.1:9060
+                        --retry 5 \
+                        --retry-delay 2 \
+                        http://127.0.0.1:9060
                 '''
             }
         }
@@ -53,16 +69,17 @@ pipeline {
     }
 
     post {
+
         success {
-            echo 'foodie-react-app deployed successfully.'
+            echo "foodie-react-app:${BUILD_NUMBER} deployed successfully."
         }
 
         failure {
-            echo 'foodie-react-app deployment failed.'
+            echo "foodie-react-app:${BUILD_NUMBER} deployment failed."
 
             sh '''
-                docker ps -a --filter "name=foodie-react-app"
-                docker logs foodie-react-app || true
+                docker ps -a --filter "name=${CONTAINER_NAME}"
+                docker logs ${CONTAINER_NAME} || true
             '''
         }
     }
