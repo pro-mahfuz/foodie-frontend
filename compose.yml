@@ -3,7 +3,7 @@ services:
   frontend:
     build: .
     ports:
-      - "127.0.0.1:9050:80"
+      - "127.0.0.1:9060:80"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
