@@ -1,4 +1,4 @@
-const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+const API_BASE = (import.meta.env.VITE_API_URL || "http://72.61.114.40:8084").replace(/\/$/, "");
 
 function unwrap<T>(value: unknown): T {
   const payload = value as { data?: unknown; content?: unknown };
